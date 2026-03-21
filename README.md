@@ -1,6 +1,21 @@
 # pack.sh - Encrypted Script Wrapper
 
+![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+
 A POSIX-compatible bash script that encrypts any executable script (bash, python, etc.) using GPG symmetric encryption and base64 encoding, producing a self-contained wrapper script for secure remote execution.
+
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [How It Works](#how-it-works)
+- [Compatibility](#compatibility)
+- [Security Notes](#security-notes)
+- [Examples](#examples)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ## Features
 
