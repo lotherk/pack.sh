@@ -1,11 +1,66 @@
-#!/bin/bash
+#!/bin/sh
 
 # pack.sh: Encrypt and wrap executable scripts for secure remote execution
 # Usage: ./pack.sh <script_file> > <output_file>
+#
+# MIT License
+#
+# Copyright (c) 2026 Konrad Lother
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# Changelog:
+# v1.0.0 - Initial release with encryption, base64 encoding, and checksum verification
+#
+# Version
+VERSION="1.0.0"
 
-set -eo pipefail
+set -e
 
-# Check arguments
+# Parse arguments
+while getopts "h" opt; do
+    case $opt in
+        h)
+            echo "pack.sh v$VERSION - Encrypt and wrap executable scripts for secure remote execution"
+            echo ""
+            echo "Usage: $0 <script_file> > <output_file>"
+            echo ""
+            echo "This script encrypts the given script file using GPG symmetric encryption,"
+            echo "base64-encodes the result, and generates a self-contained wrapper script."
+            echo "The wrapper can be executed remotely (e.g., via curl | sh) with password protection."
+            echo ""
+            echo "Options:"
+            echo "  -h    Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  $0 myscript.sh > encrypted.sh"
+            echo "  echo 'password' | $0 myscript.sh > encrypted.sh"
+            echo "  PASSWORD=mypass $0 myscript.sh > encrypted.sh"
+            exit 0
+            ;;
+        *)
+            echo "Usage: $0 <script_file>" >&2
+            exit 1
+            ;;
+    esac
+done
+
 if [ $# -ne 1 ]; then
     echo "Usage: $0 <script_file>" >&2
     exit 1
@@ -38,10 +93,14 @@ fi
 # Prompt for password
 if [ -t 0 ]; then
     echo "Enter password for encryption:" >&2
-    read -s PASSWORD1
+    stty -echo
+    read PASSWORD1
+    stty echo
     echo "" >&2
     echo "Confirm password:" >&2
-    read -s PASSWORD2
+    stty -echo
+    read PASSWORD2
+    stty echo
     echo "" >&2
 else
     read PASSWORD1
