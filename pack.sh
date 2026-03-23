@@ -108,6 +108,7 @@
 # CHANGELOG
 # =============================================================================
 #
+# v1.2.0 - Use PAYLOAD variable for base64 data and exec for execution
 # v1.1.0 - Add PASSWORD environment variable support for automated encryption
 # v1.0.0 - Initial release with encryption, base64 encoding, and checksum verification
 #
@@ -115,7 +116,7 @@
 # VERSION
 # =============================================================================
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 
 set -e
 
@@ -216,6 +217,7 @@ ENCRYPTED_DATA=$(gpg --batch --passphrase "$PASSWORD1" --symmetric --output - "$
 
 # Compute checksum for payload integrity verification
 PAYLOAD_CHECKSUM=$(echo "$ENCRYPTED_DATA" | sha256sum | awk '{print $1}')
+
 # Generate wrapper script
 OUTPUT=$(
 cat <<EOF
@@ -224,6 +226,8 @@ cat <<EOF
 # date: $(date)
 # build: $(whoami) @ $(uname -a)
 # payload_sha256: $PAYLOAD_CHECKSUM
+
+PAYLOAD="$ENCRYPTED_DATA"
 
 set -e
 
@@ -260,14 +264,13 @@ if ! command -v sha256sum >/dev/null 2>&1; then
 fi
 
 # Verify payload integrity via checksum
-if [ "\$(echo "$ENCRYPTED_DATA" | sha256sum | awk '{print \$1}')" != "$PAYLOAD_CHECKSUM" ]; then
+if [ "\$(echo "\$PAYLOAD" | sha256sum | awk '{print \$1}')" != "$PAYLOAD_CHECKSUM" ]; then
     echo "Error: Checksum mismatch! Payload may be corrupted." >&2
     exit 2
 fi
 
 # Decode the base64 data and decrypt with GPG
-DECRYPTED=\$(echo "$ENCRYPTED_DATA" | base64 -d | gpg --batch --passphrase "\$PASSWORD" --decrypt)
-
+DECRYPTED=\$(echo "\$PAYLOAD" | base64 -d | gpg --batch --passphrase "\$PASSWORD" --decrypt)
 
 # Write to temp file and execute
 TEMP_SCRIPT=\$(mktemp)
@@ -275,7 +278,7 @@ trap 'rm -f "\$TEMP_SCRIPT"' EXIT
 echo "\$DECRYPTED" > "\$TEMP_SCRIPT"
 chmod 0700 "\$TEMP_SCRIPT"
 
-"\$TEMP_SCRIPT"
+exec "\$TEMP_SCRIPT"
 
 EOF
 )

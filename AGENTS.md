@@ -25,6 +25,7 @@ pack.sh/           - Main project directory
 - GPG symmetric encryption (`--symmetric`)
 - Encoding: base64 with line wrapping disabled (`-w 0`)
 - Integrity: SHA256 checksum verification in generated wrapper
+- Payload stored in `PAYLOAD` variable in wrapper script
 
 ### Password Sources (in order of precedence)
 1. `PASSWORD` environment variable (recommended for automation)
@@ -63,10 +64,11 @@ PASSWORD=yourpassword sh -c "$(curl https://your-server.com/encrypted.sh)"
 
 ## Version
 
-Current version: 1.1.0
+Current version: 1.2.0
 
 ## Changelog
 
+- v1.2.0 - Use PAYLOAD variable for base64 data and exec for execution
 - v1.1.0 - Add PASSWORD environment variable support for automated encryption
 - v1.0.0 - Initial release with encryption, base64 encoding, and checksum verification
 
