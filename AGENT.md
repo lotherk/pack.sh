@@ -1,4 +1,4 @@
-# pack.sh - Agents Documentation
+# pack.sh - Agent Documentation
 
 ## Project Overview
 
@@ -10,13 +10,13 @@ pack.sh encrypts any executable script (bash, python, node.js, etc.) using GPG s
 pack.sh/           - Main project directory
   pack.sh          - Encryption tool (POSIX /bin/sh)
   README.md         - Project documentation
-  AGENTS.md         - This file (for agent context)
+  AGENT.md         - This file (for agent context)
 ```
 
 ## Technical Specifications
 
 ### Input
-- Any executable script file with shebang (bash, python, node.js, etc.)
+- Any executable file (scripts, binaries, compiled programs, etc.)
 
 ### Output
 - Self-contained POSIX sh wrapper script with embedded encrypted payload
