@@ -1,7 +1,86 @@
 #!/bin/sh
 
-# pack.sh: Encrypt and wrap executable scripts for secure remote execution
-# Usage: ./pack.sh <script_file> > <output_file>
+###############################################################################
+#                                                                             #
+#  pack.sh - Encrypted Script Wrapper                                         #
+#                                                                             #
+###############################################################################
+
+# =============================================================================
+# DESCRIPTION
+# =============================================================================
+#
+# pack.sh encrypts any executable script (bash, python, etc.) using GPG
+# symmetric encryption and base64 encoding, producing a self-contained wrapper
+# script for secure remote execution. The generated wrapper can be hosted on
+# a web server and executed remotely via `curl | sh` with password protection.
+#
+# =============================================================================
+# SPECS
+# =============================================================================
+#
+# Input:         Any executable script file (bash, python, node.js, etc.)
+# Output:        Self-contained POSIX sh wrapper script with embedded encrypted payload
+# Encryption:    GPG symmetric encryption (--symmetric)
+# Encoding:      base64 (line-wrapped disabled via -w 0)
+# Integrity:     SHA256 checksum verification in generated wrapper
+#
+# =============================================================================
+# PASSWORD SOURCES (in order of precedence)
+# =============================================================================
+#
+# 1. PASSWORD environment variable (recommended for automation)
+# 2. stdin (piped input, e.g., `echo 'pass' | ./pack.sh script.sh`)
+# 3. Interactive terminal prompt (if stdin is a TTY)
+#
+# =============================================================================
+# REQUIREMENTS
+# =============================================================================
+#
+# For pack.sh (encryption):
+#   - gpg        (GNU Privacy Guard)
+#   - base64     (standard Unix utility)
+#   - sha256sum  (for checksum generation)
+#
+# For generated wrapper (decryption):
+#   - gpg        (GNU Privacy Guard)
+#   - base64     (standard Unix utility)
+#   - mktemp     (for temporary file creation)
+#   - sha256sum  (for checksum verification)
+#
+# =============================================================================
+# USAGE
+# =============================================================================
+#
+#   ./pack.sh <script_file> > <output_file>
+#
+# Examples:
+#
+#   # Interactive password prompt:
+#   ./pack.sh your-script.sh > encrypted.sh
+#
+#   # Automated with password via stdin:
+#   echo 'yourpassword' | ./pack.sh your-script.sh > encrypted.sh
+#
+#   # Automated with PASSWORD environment variable:
+#   PASSWORD=yourpassword ./pack.sh your-script.sh > encrypted.sh
+#
+#   # Remote execution of generated wrapper:
+#   curl https://your-server.com/encrypted.sh | sh
+#
+#   # Automated remote execution with PASSWORD:
+#   PASSWORD=yourpassword sh -c "$(curl https://your-server.com/encrypted.sh)"
+#
+# =============================================================================
+# AUTHORS
+# =============================================================================
+#
+# Konrad 'lotherk' Lother <konrad@hiddenbox.org>
+# In proud cooperation with Big Pickle from opencode <3
+#
+# =============================================================================
+# LICENSE
+# =============================================================================
 #
 # MIT License
 #
@@ -25,11 +104,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# Changelog:
+# =============================================================================
+# CHANGELOG
+# =============================================================================
+#
+# v1.1.0 - Add PASSWORD environment variable support for automated encryption
 # v1.0.0 - Initial release with encryption, base64 encoding, and checksum verification
 #
-# Version
-VERSION="1.0.0"
+# =============================================================================
+# VERSION
+# =============================================================================
+
+VERSION="1.1.0"
 
 set -e
 
@@ -47,6 +133,11 @@ while getopts "h" opt; do
             echo ""
             echo "Options:"
             echo "  -h    Show this help message"
+            echo ""
+            echo "Password (in order of precedence):"
+            echo "  1. PASSWORD environment variable"
+            echo "  2. stdin (piped input)"
+            echo "  3. Interactive terminal prompt"
             echo ""
             echo "Examples:"
             echo "  $0 myscript.sh > encrypted.sh"
@@ -79,7 +170,7 @@ if [ ! -r "$SCRIPT_FILE" ]; then
     exit 1
 fi
 
-# Check for required commands (gpg for encryption, base64 for encoding)
+# Check for required commands (gpg for encryption, base64 for encoding, sha256sum for checksum)
 if ! command -v gpg >/dev/null 2>&1; then
     echo "Error: gpg is required but not installed" >&2
     exit 1
@@ -90,8 +181,16 @@ if ! command -v base64 >/dev/null 2>&1; then
     exit 1
 fi
 
-# Prompt for password
-if [ -t 0 ]; then
+if ! command -v sha256sum >/dev/null 2>&1; then
+    echo "Error: sha256sum is required but not installed" >&2
+    exit 1
+fi
+
+# Get password from environment variable, stdin, or interactive prompt
+if [ -n "${PASSWORD:-}" ]; then
+    PASSWORD1="$PASSWORD"
+    PASSWORD2="$PASSWORD"
+elif [ -t 0 ]; then
     echo "Enter password for encryption:" >&2
     stty -echo
     read PASSWORD1

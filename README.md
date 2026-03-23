@@ -2,7 +2,7 @@
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-A POSIX-compatible bash script that encrypts any executable script (bash, python, etc.) using GPG symmetric encryption and base64 encoding, producing a self-contained wrapper script for secure remote execution.
+A POSIX-compatible script that encrypts any executable script (bash, python, etc.) using GPG symmetric encryption and base64 encoding, producing a self-contained wrapper script for secure remote execution.
 
 ## Table of Contents
 
@@ -25,19 +25,21 @@ A POSIX-compatible bash script that encrypts any executable script (bash, python
 - Allows remote execution via `curl | sh` with password protection
 - Automatic shebang detection and execution with appropriate interpreter
 - Interactive TTY support using `script` (if available) or `sh -i` fallback
-- Password input via stdin for automation or interactive prompts
+- Password input via PASSWORD environment variable, stdin, or interactive prompts
 
 ## Requirements
 
 ### For pack.sh (encryption):
 - `gpg` (GNU Privacy Guard)
 - `base64` (standard Unix utility)
-- Bash (for the pack.sh tool)
+- `sha256sum` (for checksum generation)
+- POSIX `/bin/sh` shell
 
 ### For wrapper execution (decryption):
 - `gpg`
 - `base64`
 - `mktemp` (standard on most systems)
+- `sha256sum` (for checksum verification)
 - `script` (optional, for full TTY support)
 
 ## Installation
@@ -70,6 +72,12 @@ Automated with password via stdin:
 echo 'yourpassword' | ./pack.sh your-script.sh > encrypted-wrapper.sh
 ```
 
+Automated with PASSWORD environment variable:
+
+```bash
+PASSWORD=yourpassword ./pack.sh your-script.sh > encrypted-wrapper.sh
+```
+
 For Python scripts:
 
 ```bash
@@ -87,7 +95,7 @@ curl https://your-server.com/encrypted-wrapper.sh | sh
 
 3. Enter the password when prompted to decrypt and run the script
 
-### Automated Execution (Environment Variable)
+4. Automated remote execution with password:
 
 ```bash
 PASSWORD=yourpassword sh -c "$(curl https://your-server.com/encrypted-wrapper.sh)"
