@@ -3,7 +3,7 @@
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.2.0-blue)
 
-A POSIX-compatible script that encrypts any executable script (bash, python, etc.) using GPG symmetric encryption and base64 encoding, producing a self-contained wrapper script for secure remote execution.
+A POSIX-compatible script that encrypts any executable file (scripts, binaries, compiled programs, etc.) using GPG symmetric encryption and base64 encoding, producing a self-contained wrapper script for secure remote execution.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ A POSIX-compatible script that encrypts any executable script (bash, python, etc
 ## Features
 
 - Encrypts scripts with GPG AES256 symmetric encryption
-- Supports any script with a shebang (bash, python, node.js, etc.)
+- Encodes any executable (scripts, binaries, compiled programs, etc.)
 - Generates a self-contained POSIX sh wrapper script
 - Embeds SHA256 checksum for payload integrity verification
 - Interactive shell detection - uses `sh -i` when running in terminal
