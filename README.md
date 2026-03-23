@@ -24,7 +24,7 @@ A POSIX-compatible script that encrypts any executable file (scripts, binaries, 
 - Encodes any executable (scripts, binaries, compiled programs, etc.)
 - Generates a self-contained POSIX sh wrapper script
 - Embeds SHA256 checksum for payload integrity verification
-- Interactive shell detection - uses `sh -i` when running in terminal
+- Interactive shell detection - uses `sh -ci` when running in terminal
 - Password via environment variable, stdin, or interactive prompt
 - Temp files are automatically cleaned up on exit
 
@@ -101,9 +101,9 @@ PASSWORD=yourpassword sh -c "$(curl https://your-server.com/encrypted.sh)"
 
 ## How It Works
 
-1. `pack.sh` validates the input script file
-2. Encrypts the script using GPG symmetric encryption with the provided password
-3. Base64-encodes the encrypted data (line-wrapped disabled)
+1. `pack.sh` validates the input file
+2. Encrypts the payload using GPG symmetric encryption with the provided password
+3. Base64-encodes the encrypted payload (line-wrapped disabled)
 4. Computes SHA256 checksum of the payload for integrity verification
 5. Generates a self-contained POSIX sh wrapper with:
    - Embedded base64-encoded payload
@@ -118,7 +118,7 @@ The generated wrapper script includes:
 - Embedded payload in `PAYLOAD` variable
 - Payload SHA256 checksum for integrity verification
 - Automatic password prompt (if PASSWORD env var not set)
-- Interactive shell detection - uses `-i` flag when running in terminal
+- Interactive shell detection - uses `sh -ci` when running in terminal
 - Temp file cleanup via trap
 
 ## Security
