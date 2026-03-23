@@ -1,6 +1,7 @@
 # pack.sh - Encrypted Script Wrapper
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 
 A POSIX-compatible script that encrypts any executable script (bash, python, etc.) using GPG symmetric encryption and base64 encoding, producing a self-contained wrapper script for secure remote execution.
 
@@ -10,22 +11,22 @@ A POSIX-compatible script that encrypts any executable script (bash, python, etc
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Password Sources](#password-sources)
 - [How It Works](#how-it-works)
-- [Compatibility](#compatibility)
-- [Security Notes](#security-notes)
+- [Generated Wrapper](#generated-wrapper)
+- [Security](#security)
 - [Examples](#examples)
-- [Troubleshooting](#troubleshooting)
 - [License](#license)
 
 ## Features
 
-- Encrypts scripts with GPG symmetric encryption
+- Encrypts scripts with GPG AES256 symmetric encryption
 - Supports any script with a shebang (bash, python, node.js, etc.)
-- Generates a wrapper script that can be hosted on a web server
-- Allows remote execution via `curl | sh` with password protection
-- Automatic shebang detection and execution with appropriate interpreter
-- Interactive TTY support using `script` (if available) or `sh -i` fallback
-- Password input via PASSWORD environment variable, stdin, or interactive prompts
+- Generates a self-contained POSIX sh wrapper script
+- Embeds SHA256 checksum for payload integrity verification
+- Interactive shell detection - uses `sh -i` when running in terminal
+- Password via environment variable, stdin, or interactive prompt
+- Temp files are automatically cleaned up on exit
 
 ## Requirements
 
@@ -38,9 +39,8 @@ A POSIX-compatible script that encrypts any executable script (bash, python, etc
 ### For wrapper execution (decryption):
 - `gpg`
 - `base64`
-- `mktemp` (standard on most systems)
+- `mktemp` (for temporary file creation)
 - `sha256sum` (for checksum verification)
-- `script` (optional, for full TTY support)
 
 ## Installation
 
@@ -50,132 +50,119 @@ Clone or download `pack.sh` and make it executable:
 chmod +x pack.sh
 ```
 
-Create a symlink for convenience:
-
-```bash
-ln -s pack.sh ~/bin/pack.sh
-```
-
 ## Usage
 
 ### Creating an Encrypted Script Wrapper
 
-Interactive password prompt:
-
 ```bash
-./pack.sh your-script.sh > encrypted-wrapper.sh
+./pack.sh your-script.sh > encrypted.sh
 ```
 
-Automated with password via stdin:
+### Password Sources (in order of precedence)
 
+1. **PASSWORD environment variable** (recommended for automation):
+   ```bash
+   PASSWORD=yourpassword ./pack.sh your-script.sh > encrypted.sh
+   ```
+
+2. **stdin** (piped input):
+   ```bash
+   echo 'yourpassword' | ./pack.sh your-script.sh > encrypted.sh
+   ```
+
+3. **Interactive terminal prompt** (if stdin is a TTY):
+   ```bash
+   ./pack.sh your-script.sh > encrypted.sh
+   # Enter password when prompted
+   ```
+
+### Running the Encrypted Wrapper
+
+**Interactive** (password prompt):
 ```bash
-echo 'yourpassword' | ./pack.sh your-script.sh > encrypted-wrapper.sh
+./encrypted.sh
+# Enter password when prompted
 ```
 
-Automated with PASSWORD environment variable:
-
+**Automated** (via environment variable):
 ```bash
-PASSWORD=yourpassword ./pack.sh your-script.sh > encrypted-wrapper.sh
+PASSWORD=yourpassword ./encrypted.sh
 ```
 
-For Python scripts:
-
+**Remote execution**:
 ```bash
-./pack.sh your-script.py > encrypted-wrapper.sh
+curl https://your-server.com/encrypted.sh | sh
 ```
 
-### Hosting and Remote Execution
-
-1. Upload `encrypted-wrapper.sh` to your web server
-2. Execute remotely:
-
+**Automated remote execution**:
 ```bash
-curl https://your-server.com/encrypted-wrapper.sh | sh
-```
-
-3. Enter the password when prompted to decrypt and run the script
-
-4. Automated remote execution with password:
-
-```bash
-PASSWORD=yourpassword sh -c "$(curl https://your-server.com/encrypted-wrapper.sh)"
+PASSWORD=yourpassword sh -c "$(curl https://your-server.com/encrypted.sh)"
 ```
 
 ## How It Works
 
-1. `pack.sh` validates the input script and encrypts it using GPG with your password
-2. The encrypted data is base64-encoded and embedded in a POSIX sh wrapper script
-3. The wrapper script, when executed, prompts for the password, decrypts the payload, detects the original script's shebang, and runs it with `script -c` (for full TTY) or `sh -i` (interactive fallback)
+1. `pack.sh` validates the input script file
+2. Encrypts the script using GPG symmetric encryption with the provided password
+3. Base64-encodes the encrypted data (line-wrapped disabled)
+4. Computes SHA256 checksum of the payload for integrity verification
+5. Generates a self-contained POSIX sh wrapper with:
+   - Embedded base64-encoded payload
+   - SHA256 checksum for verification
+   - Metadata (generator, date, version, user, machine)
+   - Password prompt or PASSWORD env var support
+   - Automatic temp file cleanup
 
-## Compatibility
+## Generated Wrapper
 
-- **Wrapper**: POSIX `/bin/sh` compatible
-- **Platforms**: Linux, macOS, FreeBSD, OpenBSD, NetBSD, Solaris (with required dependencies)
-- **Interactivity**: Full TTY support with `script`, partial with `sh -i`
-- **Piped execution**: `curl | sh` works with interactive password prompt
+The generated wrapper script includes:
+- Embedded payload in `PAYLOAD` variable
+- Payload SHA256 checksum for integrity verification
+- Automatic password prompt (if PASSWORD env var not set)
+- Interactive shell detection - uses `-i` flag when running in terminal
+- Temp file cleanup via trap
 
-## Security Notes
+## Security
 
 - Passwords are read silently (no echo) when TTY is available
-- Encrypted data is handled in memory; temporary files are cleaned up automatically
-- No sensitive information is exposed in error messages
+- GPG uses AES256-CFB encryption
+- SHA256 checksum verifies payload integrity before execution
+- Encrypted data is decoded in memory; temporary files are cleaned up automatically
+- No sensitive information exposed in error messages
 - Use strong passwords for encryption
 - Consider hosting over HTTPS for transport security
 
 ## Examples
 
-### Bash Script Test
+### Encrypt a script
 
 ```bash
-cat > test.sh << 'EOF'
-#!/bin/sh
-echo "=== Testing stdout ==="
-echo "Normal output"
-
-echo "=== Testing stdin ==="
-echo "Enter your name:"
-read name
-echo "Hello, $name!"
-
-echo "=== Testing tty ==="
-echo "TTY available: $( [ -t 0 ] && echo yes || echo no )"
-
-echo "=== All tests complete ==="
-EOF
-
-chmod +x test.sh
-echo 'secret' | ./pack.sh test.sh > test-encrypted.sh
-chmod +x test-encrypted.sh
+./pack.sh myscript.sh > encrypted.sh
+chmod +x encrypted.sh
 ```
 
-**Local test**:
-```bash
-PASSWORD=secret sh test-encrypted.sh
-```
-
-**Remote test**:
-```bash
-PASSWORD=secret sh -c "$(curl http://your-server/test-encrypted.sh)"
-```
-
-### Complete Machine Setup Example
+### Run locally with password
 
 ```bash
-# Upload your setup script
-echo 'foo' | ./pack.sh setup.sh > set-me-up.sh
-# Upload set-me-up.sh to web server
-# Run on remote machine:
-curl https://your-server/set-me-up.sh | sh
-# Enter 'foo' when prompted
+PASSWORD=secret ./encrypted.sh
 ```
 
-## Troubleshooting
+### Remote execution
 
-- **mktemp not found**: Install coreutils or use alternative temp file creation
-- **Interactive commands fail**: Ensure `script` is installed for full TTY support, or modify payload to use non-interactive alternatives
-- **Piped execution issues**: Download and run locally: `curl -o script.sh URL && sh script.sh`
-- **GPG errors**: Ensure GPG version compatibility (2.x recommended)
+```bash
+# Host encrypted.sh on your web server, then:
+curl https://your-server.com/encrypted.sh | sh
+```
+
+### Test with included test script
+
+```bash
+./test.sh
+```
 
 ## License
 
-MIT License
+MIT License - See LICENSE file for details
+
+---
+
+Created by Konrad 'lotherk' Lother
