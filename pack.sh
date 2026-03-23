@@ -282,7 +282,11 @@ echo "\$DECRYPTED" > "\$TEMP_SCRIPT"
 chmod 0700 "\$TEMP_SCRIPT"
 
 
-exec sh -ci "clear 2>&1 > /dev/null; \$TEMP_SCRIPT"
+if [ -t 0 ]; then
+    exec sh -ci "clear 2>&1 > /dev/null; \$TEMP_SCRIPT"
+else
+    exec sh -c "clear 2>&1 > /dev/null; \$TEMP_SCRIPT"
+fi
 
 EOF
 )
