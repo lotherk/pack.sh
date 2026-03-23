@@ -123,7 +123,7 @@ set -e
 # Parse arguments
 while getopts "h" opt; do
     case $opt in
-        h)
+        h)clear
             echo "pack.sh v$VERSION - Encrypt and wrap executable scripts for secure remote execution"
             echo ""
             echo "Usage: $0 <script_file> > <output_file>"
@@ -224,7 +224,10 @@ cat <<EOF
 #!/bin/sh
 # generator: $(sha256sum "${0}")
 # date: $(date)
-# build: $(whoami) @ $(uname -a)
+# pack.sh_version: ${VERSION}
+# pack_user: $(whoami)
+# pack_machine: $(uname -a)
+# pack.sh: https://github.com/lotherk/pack.sh
 # payload_sha256: $PAYLOAD_CHECKSUM
 
 PAYLOAD="$ENCRYPTED_DATA"
@@ -278,7 +281,8 @@ trap 'rm -f "\$TEMP_SCRIPT"' EXIT
 echo "\$DECRYPTED" > "\$TEMP_SCRIPT"
 chmod 0700 "\$TEMP_SCRIPT"
 
-exec "\$TEMP_SCRIPT"
+
+exec sh -ci "clear 2>&1 > /dev/null; \$TEMP_SCRIPT"
 
 EOF
 )
